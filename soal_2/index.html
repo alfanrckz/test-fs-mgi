@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product and Stock Data</title>
+    <style>
+        table {
+            margin: 0 auto;
+            width: 80%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #6d7495;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Product and Stock Data</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID Product</th>
+            <th>Nama Product</th>
+            <th>Quantity</th>
+        </tr>
+    </thead>
+    <tbody id="productTableBody">
+    </tbody>
+</table>
+
+<script>
+const product = [
+    { id_product: 1, nama_product: 'Huawei P30 pro' },
+    { id_product: 2, nama_product: 'Huawei Nova 51' }
+];
+
+const stok_product = [
+    { id_product: 1, qty: 15 },
+    { id_product: 2, qty: 6 },
+    { id_product: 3, qty: 4 },
+    { id_product: 4, qty: 18 }
+];
+
+function combineProductAndStock(product, stok_product) {
+    const combinedData = product.map(prod => {
+        const stock = stok_product.find(stok => stok.id_product === prod.id_product);
+        return {
+            id_product: prod.id_product,
+            nama_product: prod.nama_product,
+            qty: stock ? stock.qty : 'Out of Stock'
+        };
+    });
+
+    stok_product.forEach(stok => {
+        if (!product.some(prod => prod.id_product === stok.id_product)) {
+            combinedData.push({
+                id_product: stok.id_product,
+                nama_product: 'Unknown Product',
+                qty: stok.qty
+            });
+        }
+    });
+
+    return combinedData;
+}
+
+function displayProductData() {
+    const tableBody = document.getElementById('productTableBody');
+    const combinedData = combineProductAndStock(product, stok_product);
+
+    combinedData.forEach(data => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${data.id_product}</td>
+            <td>${data.nama_product}</td>
+            <td>${data.qty}</td>
+        `;
+        tableBody.appendChild(tr);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', displayProductData);
+</script>
+
+</body>
+</html>

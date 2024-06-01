@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  <style>
+    body {
+      background-color: #f2f2f2;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      margin: auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+    table {
+      margin: auto;
+      margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    #filter-container {
+      margin: auto;
+      margin-top: 20px;
+      width: 50%;
+      text-align: center;
+    }
+    #filter-container input[type="text"],
+    #filter-container input[type="date"],
+    #filter-container button {
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+    }
+    #filter-container button {
+      background-color: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    #filter-container button:hover {
+      background-color: #0056b3;
+    }
+    .pagination {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .pagination button {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      padding: 10px 20px;
+      margin: 0 5px;
+      cursor: pointer;
+    }
+    .pagination button:hover {
+      background-color: #0056b3;
+    }
+    .pagination span {
+      font-weight: bold;
+      margin: 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="filter-container">
+      <input type="text" id="nameFilter" placeholder="Search name..." />
+      <input type="date" id="startDateFilter" />
+      <input type="date" id="endDateFilter" />
+      <button onclick="applyFilters()">Filter</button>
+    </div>
+    <div id="csvDataDisplay"></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+  <script>
+    let csvData = [];
+    let currentPage = 1;
+    const itemsPerPage = 20;
+
+    function fetchAndParseCSV() {
+      fetch("./Data_CSV.csv")
+        .then((response) => response.text())
+        .then((csvString) => {
+          Papa.parse(csvString, {
+            complete: function (results) {
+              csvData = results.data;
+              displayCSVData(csvData);
+            },
+          });
+        })
+        .catch((error) => console.error("Error fetching CSV:", error));
+    }
+
+    function displayCSVData(data) {
+      const csvDataDisplay = document.getElementById("csvDataDisplay");
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const displayedData = data.slice(startIndex, endIndex);
+
+      if (displayedData.length > 0 && displayedData[0].length > 0) {
+        displayedData[0][0] = "No";
+      }
+
+      const tableHTML =
+        "<table>" +
+        displayedData
+          .map(
+            (row) =>
+              "<tr>" +
+              row.map((cell) => "<td>" + cell + "</td>").join("") +
+              "</tr>"
+          )
+          .join("") +
+        "</table>";
+
+      csvDataDisplay.innerHTML = tableHTML;
+
+      renderPagination();
+    }
+
+    function renderPagination() {
+      const totalItems = csvData.length - 1; // Excluding header row
+      const totalPages = Math.ceil(totalItems / itemsPerPage);
+      const paginationContainer = document.getElementById("pagination");
+
+      let paginationHTML = "";
+
+      if (totalPages > 1) {
+        paginationHTML += `<button onclick="gotoPage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}>Previous</button>`;
+        paginationHTML += `<span>Page ${currentPage} of ${totalPages}</span>`;
+        paginationHTML += `<button onclick="gotoPage(${currentPage + 1})" ${currentPage === totalPages ? "disabled" : ""}>Next</button>`;
+      }
+
+      paginationContainer.innerHTML = paginationHTML;
+    }
+
+    function gotoPage(page) {
+      currentPage = Math.max(1, Math.min(page, Math.ceil(csvData.length / itemsPerPage)));
+      displayCSVData(csvData);
+    }
+
+    function applyFilters() {
+      const nameFilter = document
+        .getElementById("nameFilter")
+        .value.toLowerCase();
+      const startDateFilter =
+        document.getElementById("startDateFilter").value;
+      const endDateFilter = document.getElementById("endDateFilter").value;
+
+      const filteredData = csvData.filter((row, index) => {
+        if (index === 0) return true;
+
+        const fullName = (row[1] + " " + row[2]).toLowerCase();
+        const date = new Date(row[5]);
+
+        const isNameMatch = nameFilter ? fullName.includes(nameFilter) : true;
+        const isStartDateMatch = startDateFilter
+          ? new Date(startDateFilter) <= date
+          : true;
+        const isEndDateMatch = endDateFilter
+          ? new Date(endDateFilter) >= date
+          : true;
+
+        return isNameMatch && isStartDateMatch && isEndDateMatch;
+      });
+
+      currentPage = 1;
+      displayCSVData(filteredData);
+    }
+
+    window.onload = fetchAndParseCSV;
+  </script>
+</body>
+</html>
